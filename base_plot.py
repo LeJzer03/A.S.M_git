@@ -4,7 +4,24 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from cycler import cycler
 
+# Palette 1
+palette_1 = {
+    "Med Blue": "#3594cc",
+    "Light Blue": "#8cc5e3",
+    "Med Orange": "#ea801c",
+    "Light Orange": "#f0b077"
+}
+# Palette 2
+palette_2 = {
+    "Dull Purple": "#5e4c5f",
+    "Med Gray":    "#999999",
+    "Gold":        "#ffbb6f",
+    "Slate Blue":  "#6c8ea0"
+}
+
+chosen_palette = palette_1  
 
 plt.rcParams.update({
     "mathtext.fontset": "cm",
@@ -13,7 +30,9 @@ plt.rcParams.update({
     "axes.labelsize": 16,
     "axes.titlesize": 18,
     "legend.fontsize": 14,
-    })
+    "axes.prop_cycle": cycler(color=list(chosen_palette.values())),
+
+})
 
 def read_ascii(path: Path) -> np.ndarray:
     try:
@@ -136,18 +155,8 @@ def analyze_simulation(folder: str):
     """
     return df, out_dir, csv_path
 
-def main():
-    # place your simulation folder path here
-    sim_folder = r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\A.S.M_git\workspace/CubeSurfaceTraction/"
-    df = analyze_simulation(sim_folder)[0]
-    plot(df)
-
-
-#-----------------------------------------------------------------------------------
-#ONLY CHANGE THE PLOT FUNCITON UNDERNEATH
-
-def plot(df):
-    cols = ["Sigma_XX", "Sigma_YY", "Sigma_ZZ"]
+def singlePlot(df):
+    cols = ["Sigma_XX", "Sigma_YY", "Sigma_ZZ", "SigmaVM"]
     cols = [c for c in cols if c in df.columns]  # sécurité si une colonne manque
 
     ax = df[cols].plot(linewidth=3)  # x = index (le temps)
@@ -156,8 +165,99 @@ def plot(df):
     ax.grid(True, which="both", ls="--")
     ax.legend(loc="upper center", ncol=2, fontsize="small")
     plt.tight_layout()
+
+
+# COMPUTATION OF THE RELEVANT VARIABLES
+#-------------------------------------------------------------------------------------
+def equivalentBackStress(df):
+    Axx = df['A_XX']
+    Ayy = df['A_YY']
+    Azz = df['A_ZZ']
+   
+    s = (Axx**2 + Ayy**2 + Azz**2)
+    return np.sqrt(1.5 * s)
+
+def equivalentStress(df):
+    sxx = df['Sigma_XX']
+    syy = df['Sigma_YY']
+    szz = df['Sigma_ZZ']
+    
+    s = sxx**2 + syy**2 + szz**2
+    return np.sqrt(1.5 * s)
+
+def vonMisesEquivalentstress(df):
+    sxx = df['Sigma_XX']
+    syy = df['Sigma_YY']
+    szz = df['Sigma_ZZ']
+
+    Axx = df['A_XX']
+    Ayy = df['A_YY']
+    Azz = df['A_ZZ']
+
+    diff_xx = sxx - Axx
+    diff_yy = syy - Ayy
+    diff_zz = szz - Azz
+
+    s_equiv = diff_xx**2 + diff_yy**2 + diff_zz**2
+    return np.sqrt(1.5 * s_equiv)
+
+#-------------------------------------------------------------------------------------
+
+
+#PLOT FUNCITONS
+#-------------------------------------------------------------------------------------
+def multipleModelsPlot(index, xlabel, ylabel, sim_folders, labels, variable, f):
+ 
+    plt.figure() 
+    for folder, label in zip(sim_folders, labels):
+        df, *_ = analyze_simulation(folder)
+
+        #1. PLOT AN METAFOR RESULT (E_XX, SigmaVM, ...)
+        if(index == 0):
+            cols = [variable] # VARIABLE TO BE PLOTTED
+            cols = [c for c in cols if c in df.columns]
+            plt.plot(df.index, df[cols].values, label=label, linewidth=3)
+
+        #2. PLOT A VALUE COMPUTED FROM THE METAFOR RESULTS
+        if(index == 1):
+            plt.plot(df.index, f(df), label=label, linewidth=3)
+
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.grid(True, which="both", ls="--")
+    plt.legend(loc="upper center", ncol=2, fontsize="small")
+    plt.tight_layout()
     plt.show()
 
+#-------------------------------------------------------------------------------------
+
+
+#USER ONLY NEEDS TO MODIFY THE FOLLOWING LINES
+#-----------------------------------------------------------------------------------
+
+def main():
+    
+    sim_folders = [
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\CubeperfectPlastic",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\Cubeiso",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\CubeKinH",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\CubeMixH"
+    ]
+    
+    labels = ["Perfectly Plastic", "Isotropic", "Kinematic", "Mixed"]
+
+    index = 1 # 0 or 1 DEPENDING IF YOU PLOT DIRECT VARIABLES (E_XX. SigmaVM,...) 
+                        # OR ONE THAT MUST BE COMPUTED (equivalentBackStress,..)
+
+    variable = "E_XX" #ONLY USED WHEN index = 0
+    function = equivalentBackStress  #ONLY USED WHEN index = 1
+
+    xlabel = r"time [$\mathrm{s}$]"
+    ylabel = r"$\bar\alpha$ [MPa]"
+    multipleModelsPlot(index, xlabel, ylabel, sim_folders, labels, variable, function)
+
+
+#-----------------------------------------------------------------------------------
 if __name__ == "__main__":
     main()
 
