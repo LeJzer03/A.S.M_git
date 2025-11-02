@@ -2,3 +2,10 @@ workspace
 rapport_precedents
 tutoriel
 *.pdf
+__pycache__
+plots_CubeKinH
+plots_CubeMixH
+plots_CubeSurfaceTraction
+plots_Cubeiso
+plots_CubeperfectPlastic
+
