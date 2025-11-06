@@ -2,13 +2,13 @@
 #   Source file for the ASM project             #
 #                                               #
 #################################################.
-
+import os
 from wrap import *                        
 
 metafor = Metafor()
 domain = metafor.getDomain()
 
-def getMetafor(p={}): 
+def getMetafor(p={}):
     return metafor
     
 ###########################################
@@ -28,6 +28,8 @@ p['Ny'] = 1                             #Nb of elements in the y direction
 p['Nz'] = 1                             #Nb of elements in the z direction
 #TIME:
 p['dT'] = 0.1                           #Maximum time step                     
+#MATERIAL & LAWS
+p['MaterialLaw'] = 'Linear_Isotropic_hardening'
 
 ###########################################
 # END OF DEFINITION OF THE PARAMETERS     #
@@ -133,44 +135,79 @@ TransfiniteMesher3D(volumeset(1)).execute(True)
 Density = 4.50E-9                 #Density
 Young = 11.0E4                    #Young's Modulus
 Nu = 0.25                         #Poisson ratio   
-    
-materset = domain.getMaterialSet()                              
-
-material1 = materset.define (1, EvpIsoHHypoMaterial) #Create material number 1 as Elasto-viscoplastic with Isotropic hardening 
-material1.put(MASS_DENSITY,    Density)   #Set Material parameters (see required parameters in the documentation)
-material1.put(ELASTIC_MODULUS, Young)     
-material1.put(POISSON_RATIO,   Nu)   
-material1.put(YIELD_NUM,1)  #Number of the hardening law used
-
-"""
-material1 = materset.define (1, EvpIsoHHypoMaterial) #Create material number 1 as Elasto-viscoplastic with Isotropic hardening 
-material1.put(MASS_DENSITY,    Density)   #Set Material parameters (see required parameters in the documentation)
-material1.put(ELASTIC_MODULUS, Young)     
-material1.put(POISSON_RATIO,   Nu)   
-material1.put(YIELD_NUM,1)  #Number of the hardening law used
-
-alphaT = 0.0        # 1/K  (ex. 1.2e-5 si tu veux l’expansion thermique)
-kappa  = 0.0        # conductivité [énergie / (temps · longueur · K)] dans ton système d’unités
-cp     = 0.0        # capacité calorifique [énergie / (masse · K)]
-chi_te = 0.0        # part de dissipation thermoélastique (souvent 0)
-chi_tq = 0.9        # Taylor–Quinney : fraction du travail (visco)plastique convertie en chaleur
-
-material1.put(THERM_EXPANSION, alphaT)
-material1.put(CONDUCTIVITY,    kappa)
-material1.put(HEAT_CAPACITY,   cp)
-material1.put(DISSIP_TE,       chi_te)
-material1.put(DISSIP_TQ,       chi_tq)
-"""
-
-
 SigmaY_0=300.0              #Elastic limit of virgin material  
 h = 40000.0                 #Hardening parameter 
-
+theta = 0.75
+   
+materset = domain.getMaterialSet()                              
 lawset = domain.getMaterialLawSet() 
-lawset1 = lawset.define(1, LinearIsotropicHardening)  #Create law number 1 as Linear Isotropic hardening law 
-lawset1.put(IH_SIGEL,   SigmaY_0) #Set law parameters (see required parameters in the documentation)
-lawset1.put(IH_H,       h)
 
+if p['MaterialLaw'] == 'PerfectlyPlastic':
+    material1 = materset.define(1,EvpIsoHHypoMaterial)
+    material1.put(MASS_DENSITY,Density)
+    material1.put(ELASTIC_MODULUS,Young)
+    material1.put(POISSON_RATIO,Nu)
+    material1.put(YIELD_NUM,1)
+
+    h_i = 0
+    h_k = 0
+
+    lawset1 = lawset.define(1,LinearIsotropicHardening)
+    lawset1.put(IH_SIGEL,SigmaY_0)
+    lawset1.put(IH_H,h_i)
+
+if p['MaterialLaw'] == 'Linear_Isotropic_hardening':
+    material1 = materset.define(1,EvpIsoHHypoMaterial)
+    material1.put(MASS_DENSITY,Density)
+    material1.put(ELASTIC_MODULUS,Young)
+    material1.put(POISSON_RATIO,Nu)
+    material1.put(YIELD_NUM,1)
+
+    theta=1
+    h_i = theta*h
+    h_k = (1-theta)*h
+
+    lawset1 = lawset.define(1,LinearIsotropicHardening)
+    lawset1.put(IH_SIGEL,SigmaY_0)
+    lawset1.put(IH_H,h_i)
+
+if p['MaterialLaw'] == 'Linear_Kinematic_hardening':
+    material1 = materset.define(1,EvpMixtHHypoMaterial)
+    material1.put(MASS_DENSITY,Density)
+    material1.put(ELASTIC_MODULUS,Young)
+    material1.put(POISSON_RATIO,Nu)
+    material1.put(YIELD_NUM,1)
+    material1.put(KH_NB,1)
+    material1.put(KH_NUM1,2)
+
+    theta = 0;
+    h_i = theta*h
+    h_k = (1-theta)*h
+    lawset1 = lawset.define(1,LinearIsotropicHardening)
+    lawset1.put(IH_SIGEL,SigmaY_0)
+    lawset1.put(IH_H,h_i)
+    lawset1 = lawset.define(2,ArmstrongFrederickKinematicHardening)
+    lawset1.put(KH_H, h_k)
+    lawset1.put(KH_B, 0)
+
+if p['MaterialLaw'] == 'Linear_Mixed_hardening':
+    material1 = materset.define(1,EvpMixtHHypoMaterial)
+    material1.put(MASS_DENSITY,Density)
+    material1.put(ELASTIC_MODULUS,Young)
+    material1.put(POISSON_RATIO,Nu)
+    material1.put(YIELD_NUM,1) 
+    material1.put(KH_NB,1) 
+    material1.put(KH_NUM1,2)
+    
+    
+    h_i = theta*h
+    h_k = (1-theta)*h
+    lawset1 = lawset.define(1,LinearIsotropicHardening)
+    lawset1.put(IH_SIGEL,SigmaY_0)
+    lawset1.put(IH_H,h_i)
+    lawset2 = lawset.define(2,ArmstrongFrederickKinematicHardening)
+    lawset2.put(KH_H, h_k)
+    lawset2.put(KH_B, 0)
 
 ############################################################
 # END OF DEFINITION OF THE MATERIALS AND MATERIAL LAWS     #
@@ -219,7 +256,7 @@ elif p['GeometryHypothesis']=="PLANESTRAIN":
 #-------------------------------------------------
 
 #LOAD:                                                              
-Trac = 400.0                       #Traction
+Trac =400.0                       #Traction
 Ncycle = 1                         #Number of cycles of loading/unloading
 Tcycle = 4.                        #Duration of one cycle
 
@@ -236,7 +273,7 @@ for i in range (0,Ncycle):
 #########################################
 
 prp2 = ElementProperties (Pressure3DElement)                    
-prp2.put(PRESSURE,  -Trac)                             
+prp2.put(PRESSURE, Trac)                             #!!!!!!!!!!!!!! -Trac changed to +Trac
 prp2.depend (PRESSURE, fct, Field1D(TM,RE)) # To apply your new function, you can put it instead of "fct" here
     
 #7.3 Generating the pressure element on the mesh
