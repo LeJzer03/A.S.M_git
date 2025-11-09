@@ -177,13 +177,14 @@ def equivalentBackStress(df):
     s = (Axx**2 + Ayy**2 + Azz**2)
     return np.sqrt(1.5 * s)
 
-def equivalentStress(df):
+def equivalentStressPlaneStrain(df):
     sxx = df['Sigma_XX']
     syy = df['Sigma_YY']
     szz = df['Sigma_ZZ']
     
-    s = sxx**2 + syy**2 + szz**2
+    s = sxx**2 + sxx*szz + szz**2
     return np.sqrt(1.5 * s)
+
 
 def vonMisesEquivalentstress(df):
     sxx = df['Sigma_XX']
@@ -225,9 +226,36 @@ def multipleModelsPlot(index, xlabel, ylabel, sim_folders, labels, variable, f):
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.grid(True, which="both", ls="--")
-    plt.legend(loc="upper center", ncol=2, fontsize="small")
+    #plt.legend(loc="upper center", ncol=2, fontsize="small")
+    plt.legend(loc='lower center', bbox_to_anchor=(0.5, 1.02), ncol=2)
     plt.tight_layout()
     plt.show()
+
+def multipleModelsMultiplesTimes(index, xlabel, ylabel, sim_folders1, sim_folders2, labels, variable, f):
+
+    fig, axes = plt.subplots(1, 2, figsize=(11, 6), sharey=True)
+
+    for ax, sim_folders in zip(axes, [sim_folders1, sim_folders2]):
+        for folder, label in zip(sim_folders, labels):
+            df, *_ = analyze_simulation(folder)
+            if index == 0:
+                if variable in df.columns:
+                    ax.plot(df.index, df[variable], label=label, linewidth=2.5)
+            elif index == 1:
+                ax.plot(df.index, f(df), label=label, linewidth=2.5)
+
+        ax.set_xlabel(xlabel)
+        ax.grid(True, which="both", ls="--")
+
+    axes[0].set_ylabel(ylabel)
+
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.9)  
+
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 0.99), ncol=4, fontsize=14)
+    plt.show()
+
 
 def Plot(x, y, xlabel, ylabel):
     plt.plot(y, x, linewidth=3)
@@ -248,43 +276,51 @@ def main():
 
     #1. PLOTTING ONE VARIABLE (as function of time) FOR MULTIPLE SCENARIOS PLACED IN DIFFERENT FOLDERS
     
-    sim_folders = [
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\CubeperfectPlastic",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\Cubeiso",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\CubeKinH",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\CubeMixH"
+    sim_folder1 = [
+        #r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\PP",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\rapid\IH",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\rapid\KH",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\rapid\MH"
     ]
-    
-    labels = ["Perfectly Plastic", "Isotropic", "Kinematic", "Mixed"]
+    sim_folder2 = [
+        #r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\PP",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\long\IH",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\long\KH",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\long\MH"
+    ]   
+    #labels = ["Perfectly Plastic", "Isotropic", "Kinematic", "Mixed"]
+    labels = ["Linear Isotropic", "Linear Kinematic", "Linear Mixed", "Perfectly Plastic"]
 
     index = 1 # 0 or 1 DEPENDING IF YOU PLOT DIRECT VARIABLES (E_XX. SigmaVM,...) 
                         # OR ONE THAT MUST BE COMPUTED (equivalentBackStress,..)
 
     variable = "Sigma_XX" #ONLY USED WHEN index = 0 !! DO NO TRY TO PLOT MULTIPLE VARIABLES FOR DIFFERENT MODELS -> TOO MESSY
-    function = equivalentBackStress  #ONLY USED WHEN index = 1
+    function = equivalentStressPlaneStrain  #ONLY USED WHEN index = 1
 
     xlabel = r"time [$\mathrm{s}$]"
-    ylabel = r"$\bar\alpha$ [MPa]"
-    multipleModelsPlot(index, xlabel, ylabel, sim_folders, labels, variable, function)
+    ylabel = r"$\bar\sigma$ [MPa]"
+    # multipleModelsPlot(index, xlabel, ylabel, sim_folders, labels, variable, function)
+    multipleModelsMultiplesTimes(index, xlabel, ylabel, sim_folder1, sim_folder2,  labels, variable, function)
     
 
     #2. PLOTTING MULTIPLE VARIABLES (as function of time) FOR ONE PARTICULAR SCENARIO
 
-    cols = ["Sigma_XX", "Sigma_YY", "Sigma_ZZ", "SigmaVM"]
-    cols = ["E_XX", "E_YY", "E_ZZ"]
-    df_iso, *_ = analyze_simulation(r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\Cubeiso")
-    singlePlot(df_iso, cols)
+    # #cols = ["Sigma_XX", "Sigma_YY", "Sigma_ZZ", "SigmaVM"]
+    # cols = ["Sigma_VM"]
+    # #cols = ["E_XX", "E_YY", "E_ZZ"]
+    # df_perfPlastic, *_ = analyze_simulation(r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\PP")
+    # singlePlot(df_perfPlastic, cols)
     
 
     #3. PLOTTING TWO VARIABLES (one vs the other, not as a fct of time) FOR THE SAME SCENARIO
 
-    df_iso, *_ = analyze_simulation(r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\Cubeiso")
-    x = df_iso["E_XX"].values
-    y = df_iso["Sigma_XX"].values
+    # df_iso, *_ = analyze_simulation(r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\IH")
+    # x = df_iso["E_XX"].values
+    # y = df_iso["Sigma_XX"].values
 
-    xlabel = r"$\epsilon_{xx}$ [-]"
-    ylabel = r"$\sigma_{xx}$ [MPa]"
-    Plot(x, y, xlabel, ylabel)
+    # xlabel = r"$\epsilon_{xx}$ [-]"
+    # ylabel = r"$\sigma_{xx}$ [MPa]"
+    # Plot(x, y, xlabel, ylabel)
 #-----------------------------------------------------------------------------------
 if __name__ == "__main__":
     main()
