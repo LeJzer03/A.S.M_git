@@ -29,7 +29,7 @@ p['Nz'] = 1                             #Nb of elements in the z direction
 #TIME:
 p['dT'] = 0.1                           #Maximum time step                     
 #MATERIAL & LAWS
-p['MaterialLaw'] = 'Linear_Isotropic_hardening'
+p['MaterialLaw'] = 'PerfectlyPlastic' #Material law: 'PerfectlyPlastic', 'Linear_Isotropic_hardening', 'Linear_Kinematic_hardening', 'Linear_Mixed_hardening'
 
 ###########################################
 # END OF DEFINITION OF THE PARAMETERS     #
@@ -180,7 +180,7 @@ if p['MaterialLaw'] == 'Linear_Kinematic_hardening':
     material1.put(KH_NB,1)
     material1.put(KH_NUM1,2)
 
-    theta = 0;
+    theta = 0
     h_i = theta*h
     h_k = (1-theta)*h
     lawset1 = lawset.define(1,LinearIsotropicHardening)
@@ -256,7 +256,7 @@ elif p['GeometryHypothesis']=="PLANESTRAIN":
 #-------------------------------------------------
 
 #LOAD:                                                              
-Trac =400.0                       #Traction
+Trac =440.0                       #Traction
 Ncycle = 1                         #Number of cycles of loading/unloading
 Tcycle = 4.                        #Duration of one cycle
 

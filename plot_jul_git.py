@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from cycler import cycler
+from typing import Optional, Union
 
 # Palette 1
 palette_1 = {
@@ -155,7 +156,7 @@ def analyze_simulation(folder: str):
     """
     return df, out_dir, csv_path
 
-def singlePlot(df, cols):
+def singlePlot(df, cols, save_dir: Optional[Union[str, Path]] = None, filename: Optional[str] = None):
     cols = [c for c in cols if c in df.columns]  # sécurité si une colonne manque
 
     ax = df[cols].plot(linewidth=3)  # x = index (le temps)
@@ -164,7 +165,32 @@ def singlePlot(df, cols):
     ax.grid(True, which="both", ls="--")
     ax.legend(loc="upper center", ncol=2, fontsize="small")
     plt.tight_layout()
+
+    if save_dir is not None:
+        auto_name = filename or f"time_vs_{'_'.join(sanitize_filename(c) for c in cols)}"
+        save_figure(save_dir, auto_name)
+
     plt.show()
+
+
+#Saving in .pdf format
+def sanitize_filename(name: str) -> str:
+    name = (name or "").strip().replace(" ", "_")
+    return "".join(c if c.isalnum() or c in "._-()" else "_" for c in name)
+
+def func_name(f) -> str:
+    return getattr(f, "__name__", "custom_function")
+
+def save_figure(save_dir: Union[str, Path], filename: Optional[str] = None, fig=None) -> Path:
+    fig = fig or plt.gcf()
+    save_path = Path(save_dir)
+    save_path.mkdir(parents=True, exist_ok=True)
+    base = sanitize_filename(filename or "figure")
+    if not base.lower().endswith(".pdf"):
+        base += ".pdf"
+    out = save_path / base
+    fig.savefig(out, format="pdf")
+    return out
 
 
 # COMPUTATION OF THE RELEVANT VARIABLES
@@ -207,31 +233,41 @@ def vonMisesEquivalentstress(df):
 
 #PLOT FUNCITONS
 #-------------------------------------------------------------------------------------
-def multipleModelsPlot(index, xlabel, ylabel, sim_folders, labels, variable, f):
- 
-    plt.figure() 
+def multipleModelsPlot(index, xlabel, ylabel, sim_folders, labels, variable, f,
+                       save_dir: Optional[Union[str, Path]] = None, filename: Optional[str] = None):
+    plt.figure()
     for folder, label in zip(sim_folders, labels):
         df, *_ = analyze_simulation(folder)
 
-        #1. PLOT AN METAFOR RESULT (E_XX, SigmaVM, ...)
-        if(index == 0):
-            cols = [variable] # VARIABLE TO BE PLOTTED
+        # 1. Direct variable
+        if index == 0:
+            cols = [variable]
             cols = [c for c in cols if c in df.columns]
-            plt.plot(df.index, df[cols].values, label=label, linewidth=3)
+            if cols:
+                plt.plot(df.index, df[cols].values, label=label, linewidth=3)
 
-        #2. PLOT A VALUE COMPUTED FROM THE METAFOR RESULTS
-        if(index == 1):
+        # 2. Computed variable
+        if index == 1:
             plt.plot(df.index, f(df), label=label, linewidth=3)
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.grid(True, which="both", ls="--")
-    #plt.legend(loc="upper center", ncol=2, fontsize="small")
     plt.legend(loc='lower center', bbox_to_anchor=(0.5, 1.02), ncol=2)
     plt.tight_layout()
+
+    if save_dir is not None:
+        base = filename
+        if not base:
+            what = variable if index == 0 else func_name(f)
+            labs = "_".join(sanitize_filename(l) for l in labels)
+            base = f"time_vs_{sanitize_filename(what)}__{labs}"
+        save_figure(save_dir, base)
+
     plt.show()
 
-def multipleModelsMultiplesTimes(index, xlabel, ylabel, sim_folders1, sim_folders2, labels, variable, f):
+def multipleModelsMultiplesTimes(index, xlabel, ylabel, sim_folders1, sim_folders2, labels, variable, f,
+                                 save_dir: Optional[Union[str, Path]] = None, filename: Optional[str] = None):
 
     fig, axes = plt.subplots(1, 2, figsize=(11, 6), sharey=True)
 
@@ -250,20 +286,30 @@ def multipleModelsMultiplesTimes(index, xlabel, ylabel, sim_folders1, sim_folder
     axes[0].set_ylabel(ylabel)
 
     plt.tight_layout()
-    plt.subplots_adjust(top=0.9)  
-
+    plt.subplots_adjust(top=0.9)
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 0.99), ncol=4, fontsize=14)
+
+    if save_dir is not None:
+        what = variable if index == 0 else func_name(f)
+        auto = filename or f"time_vs_{sanitize_filename(what)}__two_timesets"
+        save_figure(save_dir, auto, fig=fig)
+
     plt.show()
 
 
-def Plot(x, y, xlabel, ylabel):
+def Plot(x, y, xlabel, ylabel, save_dir: Optional[Union[str, Path]] = None, filename: Optional[str] = None):
     plt.plot(y, x, linewidth=3)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.grid(True, which="both", ls="--")
     plt.legend(loc="upper center", ncol=2, fontsize="small")
     plt.tight_layout()
+
+    if save_dir is not None:
+        auto = filename or f"{sanitize_filename(ylabel)}_vs_{sanitize_filename(xlabel)}"
+        save_figure(save_dir, auto)
+
     plt.show()
 
 #-------------------------------------------------------------------------------------
@@ -274,42 +320,50 @@ def Plot(x, y, xlabel, ylabel):
 
 def main():
 
+    # --- Set your output folder here (user-provided/personal) ---
+    save_folder = r"C:\Ecole\MASTER - 1\Advanced Solid Mecanics\Project\project_file\SavedPlots"
+    # ---------------------------------------------------
+
     #1. PLOTTING ONE VARIABLE (as function of time) FOR MULTIPLE SCENARIOS PLACED IN DIFFERENT FOLDERS
-    
+
+    # SIMULATION FOLDERS
+
+    # For plane stress, one cycle
     sim_folder1 = [
         #r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\PP",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\rapid\IH",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\rapid\KH",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\rapid\MH"
+        r"C:\Ecole\MASTER - 1\Advanced Solid Mecanics\Project\project_file\Results\Plain Stress (1 normal cycle)\Linear_Isotropic_hardening",
+        r"C:\Ecole\MASTER - 1\Advanced Solid Mecanics\Project\project_file\Results\Plain Stress (1 normal cycle)\Linear_Kinematic_hardening",
+        r"C:\Ecole\MASTER - 1\Advanced Solid Mecanics\Project\project_file\Results\Plain Stress (1 normal cycle)\Linear_Mixed_hardening"
     ]
-    sim_folder2 = [
-        #r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\PP",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\long\IH",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\long\KH",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\long\MH"
-    ]   
+    # sim_folder2 = [
+    #     #r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\PP",
+    #     r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\long\IH",
+    #     r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\long\KH",
+    #     r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\long\MH"
+    # ]   
+    
     #labels = ["Perfectly Plastic", "Isotropic", "Kinematic", "Mixed"]
-    labels = ["Linear Isotropic", "Linear Kinematic", "Linear Mixed", "Perfectly Plastic"]
+    # labels = ["Linear Isotropic", "Linear Kinematic", "Linear Mixed", "Perfectly Plastic"]
 
-    index = 1 # 0 or 1 DEPENDING IF YOU PLOT DIRECT VARIABLES (E_XX. SigmaVM,...) 
-                        # OR ONE THAT MUST BE COMPUTED (equivalentBackStress,..)
+    # index = 1 # 0 or 1 DEPENDING IF YOU PLOT DIRECT VARIABLES (E_XX. SigmaVM,...) 
+    #                     # OR ONE THAT MUST BE COMPUTED (equivalentBackStress,..)
 
-    variable = "Sigma_XX" #ONLY USED WHEN index = 0 !! DO NO TRY TO PLOT MULTIPLE VARIABLES FOR DIFFERENT MODELS -> TOO MESSY
-    function = equivalentStressPlaneStrain  #ONLY USED WHEN index = 1
+    # variable = "Sigma_XX" #ONLY USED WHEN index = 0 !! DO NO TRY TO PLOT MULTIPLE VARIABLES FOR DIFFERENT MODELS -> TOO MESSY
+    # function = equivalentStressPlaneStrain  #ONLY USED WHEN index = 1
 
-    xlabel = r"time [$\mathrm{s}$]"
-    ylabel = r"$\bar\sigma$ [MPa]"
-    # multipleModelsPlot(index, xlabel, ylabel, sim_folders, labels, variable, function)
-    multipleModelsMultiplesTimes(index, xlabel, ylabel, sim_folder1, sim_folder2,  labels, variable, function)
+    # xlabel = r"time [$\mathrm{s}$]"
+    # ylabel = r"$\bar\sigma$ [MPa]"
+    # multipleModelsPlot(index, xlabel, ylabel, sim_folder1, labels, variable, function)
+    #multipleModelsMultiplesTimes(index, xlabel, ylabel, sim_folder1, sim_folder2,  labels, variable, function)
     
 
     #2. PLOTTING MULTIPLE VARIABLES (as function of time) FOR ONE PARTICULAR SCENARIO
 
-    # #cols = ["Sigma_XX", "Sigma_YY", "Sigma_ZZ", "SigmaVM"]
-    # cols = ["Sigma_VM"]
-    # #cols = ["E_XX", "E_YY", "E_ZZ"]
-    # df_perfPlastic, *_ = analyze_simulation(r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\PP")
-    # singlePlot(df_perfPlastic, cols)
+    cols = ["Sigma_XX", "Sigma_YY", "Sigma_ZZ", "SigmaVM"]
+    #cols = ["Sigma_VM"]
+    #cols = ["E_XX", "E_YY", "E_ZZ"]
+    df_perfPlastic, *_ = analyze_simulation(r"C:\Ecole\MASTER - 1\Advanced Solid Mecanics\Project\project_file\Results\Plain Stress (1 normal cycle)\Linear_Isotropic_hardening")
+    singlePlot(df_perfPlastic, cols, save_dir=save_folder)
     
 
     #3. PLOTTING TWO VARIABLES (one vs the other, not as a fct of time) FOR THE SAME SCENARIO
