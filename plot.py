@@ -21,7 +21,7 @@ palette_2 = {
     "Slate Blue":  "#6c8ea0"
 }
 
-chosen_palette = palette_1  
+chosen_palette = palette_2  
 
 plt.rcParams.update({
     "mathtext.fontset": "cm",
@@ -182,11 +182,18 @@ def equivalentStressPlaneStrain(df):
     syy = df['Sigma_YY']
     szz = df['Sigma_ZZ']
     
-    s = sxx**2 + sxx*szz + szz**2
+    s = sxx**2 - sxx*szz + szz**2
     return np.sqrt(1.5 * s)
 
+def equivalentStressPlaneStress(df):
+    sxx = df['Sigma_XX']
+    syy = df['Sigma_YY']
+    szz = df['Sigma_ZZ']
+    
+    s = sxx**2
+    return np.sqrt(s)
 
-def vonMisesEquivalentstress(df):
+def vonMisesEquivalentstressPlaneStress(df):
     sxx = df['Sigma_XX']
     syy = df['Sigma_YY']
     szz = df['Sigma_ZZ']
@@ -195,12 +202,7 @@ def vonMisesEquivalentstress(df):
     Ayy = df['A_YY']
     Azz = df['A_ZZ']
 
-    diff_xx = sxx - Axx
-    diff_yy = syy - Ayy
-    diff_zz = szz - Azz
-
-    s_equiv = diff_xx**2 + diff_yy**2 + diff_zz**2
-    return np.sqrt(1.5 * s_equiv)
+    return np.sqrt( (2/3) * sxx**2 + (3/2) * Axx**2 - 2 * sxx * Axx)
 
 #-------------------------------------------------------------------------------------
 
@@ -227,7 +229,7 @@ def multipleModelsPlot(index, xlabel, ylabel, sim_folders, labels, variable, f):
     plt.ylabel(ylabel)
     plt.grid(True, which="both", ls="--")
     #plt.legend(loc="upper center", ncol=2, fontsize="small")
-    plt.legend(loc='lower center', bbox_to_anchor=(0.5, 1.02), ncol=2)
+    plt.legend(loc='lower center', bbox_to_anchor=(0.5, 1.02), ncol=3, fontsize=12)
     plt.tight_layout()
     plt.show()
 
@@ -276,6 +278,25 @@ def main():
 
     #1. PLOTTING ONE VARIABLE (as function of time) FOR MULTIPLE SCENARIOS PLACED IN DIFFERENT FOLDERS
     
+    #LOADING THE  PLANE STRESS RESULTS:
+    #---------------------------------------------------------------------------------------------
+    # sim_folder1 = [
+    #     #r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\rapid\PP",
+    #     r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\rapid\IH",
+    #     r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\rapid\KH",
+    #     r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\rapid\MH"
+    # ]
+    # sim_folder2 = [
+    #     # r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\long\PP",
+    #     r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\long\IH",
+    #     r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\long\KH",
+    #     r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\long\MH"
+    # ]   
+    #---------------------------------------------------------------------------------------------
+    
+    
+    #LOADING THE  PLANE STRAIN RESULTS:
+    # #---------------------------------------------------------------------------------------------
     sim_folder1 = [
         #r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\PP",
         r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\rapid\IH",
@@ -288,18 +309,23 @@ def main():
         r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\long\KH",
         r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\long\MH"
     ]   
-    #labels = ["Perfectly Plastic", "Isotropic", "Kinematic", "Mixed"]
+    #---------------------------------------------------------------------------------------------
+       
+    
+    
+    
+    # labels = ["Perfectly Plastic", "Isotropic", "Kinematic", "Mixed"]
     labels = ["Linear Isotropic", "Linear Kinematic", "Linear Mixed", "Perfectly Plastic"]
 
     index = 1 # 0 or 1 DEPENDING IF YOU PLOT DIRECT VARIABLES (E_XX. SigmaVM,...) 
                         # OR ONE THAT MUST BE COMPUTED (equivalentBackStress,..)
 
-    variable = "Sigma_XX" #ONLY USED WHEN index = 0 !! DO NO TRY TO PLOT MULTIPLE VARIABLES FOR DIFFERENT MODELS -> TOO MESSY
+    variable = "E_PL" #ONLY USED WHEN index = 0 !! DO NO TRY TO PLOT MULTIPLE VARIABLES FOR DIFFERENT MODELS -> TOO MESSY
     function = equivalentStressPlaneStrain  #ONLY USED WHEN index = 1
 
     xlabel = r"time [$\mathrm{s}$]"
-    ylabel = r"$\bar\sigma$ [MPa]"
-    # multipleModelsPlot(index, xlabel, ylabel, sim_folders, labels, variable, function)
+    ylabel = r"$\bar \sigma$ [MPa]"
+    #multipleModelsPlot(index, xlabel, ylabel, sim_folder1, labels, variable, function)
     multipleModelsMultiplesTimes(index, xlabel, ylabel, sim_folder1, sim_folder2,  labels, variable, function)
     
 
