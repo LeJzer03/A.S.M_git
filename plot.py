@@ -193,7 +193,18 @@ def equivalentStressPlaneStress(df):
     s = sxx**2
     return np.sqrt(s)
 
-def vonMisesEquivalentstressPlaneStress(df):
+# def vonMisesEquivalentstressPlaneStress(df):
+#     sxx = df['Sigma_XX']
+#     syy = df['Sigma_YY']
+#     szz = df['Sigma_ZZ']
+
+#     Axx = df['A_XX']
+#     Ayy = df['A_YY']
+#     Azz = df['A_ZZ']
+
+#     return np.sqrt( (2/3) * sxx**2 + (3/2) * Axx**2 - 2 * sxx * Axx)
+
+def vonMisesEquivalentPlaneStress(df):
     sxx = df['Sigma_XX']
     syy = df['Sigma_YY']
     szz = df['Sigma_ZZ']
@@ -202,7 +213,12 @@ def vonMisesEquivalentstressPlaneStress(df):
     Ayy = df['A_YY']
     Azz = df['A_ZZ']
 
-    return np.sqrt( (2/3) * sxx**2 + (3/2) * Axx**2 - 2 * sxx * Axx)
+    bxx = sxx - Axx
+    byy = syy - Ayy
+    bzz = szz - Azz
+
+    vm2 = 0.5 * ((bxx - byy)**2 + (byy - bzz)**2 + (bzz - bxx)**2)
+    return np.sqrt(vm2)
 
 #-------------------------------------------------------------------------------------
 
