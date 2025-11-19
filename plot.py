@@ -220,6 +220,22 @@ def vonMisesEquivalentPlaneStress(df):
     vm2 = 0.5 * ((bxx - byy)**2 + (byy - bzz)**2 + (bzz - bxx)**2)
     return np.sqrt(vm2)
 
+def plasticDissipationRate(df):
+
+    sigma_vm = df['SigmaVM']
+    epl = df['EPL']
+    
+    time = df.index.values
+    dt = np.diff(time)
+    
+    epl_rate = np.zeros_like(epl)
+    epl_rate[:-1] = np.diff(epl) / dt
+    epl_rate[-1] = epl_rate[-2]  
+    
+    dissipation_rate = sigma_vm * epl_rate
+    
+    return dissipation_rate
+
 #-------------------------------------------------------------------------------------
 
 
