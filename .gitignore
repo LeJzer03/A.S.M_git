@@ -1,7 +1,6 @@
 workspace
 rapport_precedents
 tutoriel
-*.pdf
 __pycache__
 plots_CubeKinH
 plots_CubeMixH
