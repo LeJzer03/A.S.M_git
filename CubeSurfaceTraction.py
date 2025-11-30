@@ -41,7 +41,10 @@ p['dT'] = 0.1                           #Maximum time step     i
 
 # ELASTOPLASTIC WITH NON LINEAR HARDENING
 #----------------------------------------------------
-
+# p['MaterialLaw'] = 'NL_Kinematic'
+# p['MaterialLaw'] = 'NL_Kinematic_L_Isotropic'
+# p['MaterialLaw'] = 'NL_Kinematic_NL_Isotropic'
+p['n_k'] = 200 #viscous parameter [MPa.s]
 #----------------------------------------------------
 
 
@@ -159,6 +162,7 @@ Density = 4.50E-9                 #Density
 Young = 11.0E4                    #Young's Modulus
 Nu = 0.25                         #Poisson ratio   
 SigmaY_0=300.0              #Elastic limit of virgin material  
+SigmaY_inf = 425.0
 h = 40000.0                 #Hardening parameter 
 theta = 0.75
 # DEFINITION OF VISCO PARAMETERS
@@ -169,7 +173,7 @@ materset = domain.getMaterialSet()
 lawset = domain.getMaterialLawSet() 
 
 #------------------------------------------------------------------
-# ELASTOP WITH  WITH NON LINEAR HARDENING
+# ELASTOP WITH  WITH LINEAR HARDENING
 #------------------------------------------------------------------
 if p['MaterialLaw'] == 'perfectPlastic':
     material1 = materset.define(1,EvpIsoHHypoMaterial)
@@ -239,18 +243,71 @@ if p['MaterialLaw'] == 'linearMixedHardening':
 #------------------------------------------------------------------
 # ELASTOP WITH  WITH NON LINEAR HARDENING
 #------------------------------------------------------------------
+if p['MaterialLaw'] == 'NL_Kinematic':
+    material1 = materset.define(1,EvpMixtHHypoMaterial)
+    material1.put(MASS_DENSITY,Density)
+    material1.put(ELASTIC_MODULUS,Young)
+    material1.put(POISSON_RATIO,Nu)
+    material1.put(YIELD_NUM,1) 
+    material1.put(KH_NB,1) 
+    material1.put(KH_NUM1,2) 
 
+    h_i = 0
+    h_k = h
 
+    lawset1 = lawset.define(1,LinearIsotropicHardening) 
+    lawset1.put(IH_SIGEL,SigmaY_0)
+    lawset1.put(IH_H,h_i)
+    lawset2 = lawset.define(2,ArmstrongFrederickKinematicHardening)
+    lawset2.put(KH_H, h_k)
+    lawset2.put(KH_B, p['n_k'])
 
+if p['MaterialLaw'] == 'NL_Kinematic_L_Isotropic':
+    material1 = materset.define(1,EvpMixtHHypoMaterial)
+    material1.put(MASS_DENSITY,Density)
+    material1.put(ELASTIC_MODULUS,Young)
+    material1.put(POISSON_RATIO,Nu)
+    material1.put(YIELD_NUM,1) 
+    material1.put(KH_NB,1) 
+    material1.put(KH_NUM1,2)
+    
+    
+    h_i = theta*h
+    h_k = (1-theta)*h
 
+    lawset1 = lawset.define(1,LinearIsotropicHardening)
+    lawset1.put(IH_SIGEL,SigmaY_0)
+    lawset1.put(IH_H,h_i)
+    lawset2 = lawset.define(2,ArmstrongFrederickKinematicHardening)
+    lawset2.put(KH_H, h_k)
+    lawset2.put(KH_B, p['n_k'])
 
+if p['MaterialLaw'] == 'NL_Kinematic_NL_Isotropic':
+    material1 = materset.define(1,EvpMixtHHypoMaterial)
+    material1.put(MASS_DENSITY,Density)
+    material1.put(ELASTIC_MODULUS,Young)
+    material1.put(POISSON_RATIO,Nu)
+    material1.put(YIELD_NUM,1) 
+    material1.put(KH_NB,1) 
+    material1.put(KH_NUM1,2) 
+    
+    
+    h_i = theta*h
+    h_k = (1-theta)*h
+    Q = SigmaY_inf - SigmaY_0
+    Ksi = h_i/Q
 
-
+    lawset1 = lawset.define(1,SaturatedIsotropicHardening)
+    lawset1.put(IH_SIGEL, SigmaY_0)
+    lawset1.put(IH_Q, Q)
+    lawset1.put(IH_KSI, Ksi)
+    lawset2 = lawset.define(2,ArmstrongFrederickKinematicHardening)
+    lawset2.put(KH_H, h_k)
+    lawset2.put(KH_B, p['n_k'])
 
 #------------------------------------------------------------------
 # VISCO-ELASTOPLASTIC LAWS 
 #------------------------------------------------------------------
-
 if p['MaterialLaw'] == 'viscoNoHardening':
     material1 = materset.define(1,EvpIsoHHypoMaterial)
     material1.put(MASS_DENSITY,Density)
