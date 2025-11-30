@@ -20,17 +20,33 @@ palette_2 = {
     "Gold":        "#ffbb6f",
     "Slate Blue":  "#6c8ea0"
 }
+palette_tol_muted = {
+    "Green":    "#7C44AA",
+    "Teal":     "#88CCEE",
+    "Olive":    "#117733",
+    "Indigo":   "#FF8819"
+}
+palette_okabe_ito = {
+    "Orange": "#E69F00",
+    "Green":  "#009E73",
+    "Blue":   "#0072B2",
+    "Light Blue": "#8cc5e3",
+}
 
-chosen_palette = palette_2  
+linestyles = ["-", "--", "-", "--"]
+alphas = [1, 1, 1, 1]
+chosen_palette = palette_okabe_ito
 
 plt.rcParams.update({
     "mathtext.fontset": "cm",
     "figure.autolayout": True,
     "font.size": 14,
-    "axes.labelsize": 16,
-    "axes.titlesize": 18,
+    "axes.labelsize": 21,
+    "axes.titlesize": 22,
     "legend.fontsize": 14,
-    "axes.prop_cycle": cycler(color=list(chosen_palette.values())),
+    "axes.prop_cycle": cycler(color=list(chosen_palette.values()))
+                        + cycler(linestyle=linestyles)
+                        + cycler(alpha=alphas),
 
 })
 
@@ -220,6 +236,14 @@ def vonMisesEquivalentPlaneStress(df):
     vm2 = 0.5 * ((bxx - byy)**2 + (byy - bzz)**2 + (bzz - bxx)**2)
     return np.sqrt(vm2)
 
+def eqVM_PlaneStress(df): #identical results to the formula above
+    sigmaXX = df['Sigma_XX']
+    sXX = 2/3 * sigmaXX
+    alphaXX = df['A_XX']
+    vm_3 = 1.5 * (sXX - alphaXX)**2
+
+    return np.sqrt(vm_3)
+
 def plasticDissipationRate(df):
 
     sigma_vm = df['SigmaVM']
@@ -236,12 +260,26 @@ def plasticDissipationRate(df):
     
     return dissipation_rate
 
+def sigmaYVisco(df, SigmaY0, hi):
+    eVP = df['EPL']
+    return SigmaY0 + hi * eVP
+
+def eqBackStressVisco(df, hk):
+    eVP = df['EPL']
+    return hk*eVP
+
+def VonMisesMinusSigmaY(df, SigmaY0, hi):
+    sigmaVM = df['SigmaVM']
+    sigmaY = sigmaYVisco(df, SigmaY0, hi)
+    return sigmaVM - sigmaY
+
+
 #-------------------------------------------------------------------------------------
 
 
 #PLOT FUNCITONS
 #-------------------------------------------------------------------------------------
-def multipleModelsPlot(index, xlabel, ylabel, sim_folders, labels, variable, f):
+def multipleModelsPlot(index, xlabel, ylabel, sim_folders, labels, variable, f, SigmaY0, hi, hk):
  
     plt.figure() 
     for folder, label in zip(sim_folders, labels):
@@ -249,21 +287,34 @@ def multipleModelsPlot(index, xlabel, ylabel, sim_folders, labels, variable, f):
 
         #1. PLOT AN METAFOR RESULT (E_XX, SigmaVM, ...)
         if(index == 0):
-            cols = [variable] # VARIABLE TO BE PLOTTED
-            cols = [c for c in cols if c in df.columns]
-            plt.plot(df.index, df[cols].values, label=label, linewidth=3)
+            if variable in df.columns:
+                y = df[variable].values.ravel()
+                plt.plot(df.index, y, label=label, linewidth=3)
+            else:
+                print(f"Variable {variable} not found in {folder}")
 
         #2. PLOT A VALUE COMPUTED FROM THE METAFOR RESULTS
         if(index == 1):
-            plt.plot(df.index, f(df), label=label, linewidth=3)
+            # plt.plot(df.index, f(df), label=label, linewidth=3)
+            plt.plot(df.index, f(df, SigmaY0, hi), label=label, linewidth=3) #SigmaYVisco
+            # plt.plot(df.index, f(df, hk), label=label, linewidth=2.5) #eqBackStressVisco
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.grid(True, which="both", ls="--")
-    #plt.legend(loc="upper center", ncol=2, fontsize="small")
-    plt.legend(loc='lower center', bbox_to_anchor=(0.5, 1.02), ncol=3, fontsize=12)
+    # plt.ticklabel_format(style='sci', axis='y', scilimits=(-3, -3))
+    # forcer des graduations tous les 4 s
+    from matplotlib.ticker import MultipleLocator
+    plt.gca().xaxis.set_major_locator(MultipleLocator(4))
+    # optionnel : agrandir la taille du "×10⁻³"
+    plt.gca().yaxis.get_offset_text().set_fontsize(14)
+
+   #plt.legend(loc="upper center", ncol=2, fontsize="small")
+    plt.legend(loc='lower center', bbox_to_anchor=(0.5, 1.02), ncol=2, fontsize=16)
+    # plt.legend(fontsize=16)
     plt.tight_layout()
     plt.show()
+
 
 def multipleModelsMultiplesTimes(index, xlabel, ylabel, sim_folders1, sim_folders2, labels, variable, f):
 
@@ -330,43 +381,100 @@ def main():
     #LOADING THE  PLANE STRAIN RESULTS:
     # #---------------------------------------------------------------------------------------------
     sim_folder1 = [
-        #r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\PP",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\rapid\IH",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\rapid\KH",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\rapid\MH"
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part1\planestrain\rapid\IH",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part1\planestrain\rapid\KH",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part1\planestrain\rapid\MH",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part1\planestrain\rapid\PP"
     ]
     sim_folder2 = [
-        #r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\PP",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\long\IH",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\long\KH",
-        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestrain\long\MH"
-    ]   
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part1\planestrain\long\IH",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part1\planestrain\long\KH",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part1\planestrain\long\MH",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part1\planestrain\long\PP"
+    ]
+
+    #-------------------------------------------------------------------------
+    #Visco folders
+    sim_folder_visco_no_hard_cte_load = [
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoNoHardening\eta10_2",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoNoHardening\eta10_3",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoNoHardening\eta10_4",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoNoHardening\eta10_5"
+    ]
+
+    sim_folder_visco_lin_iso_cte_load = [
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoLinIsoHard\const_load\eta10_2",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoLinIsoHard\const_load\eta10_3",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoLinIsoHard\const_load\eta10_4",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoLinIsoHard\const_load\eta10_5"
+    ]
+    sim_folder_visco_mix_cte_load = [
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoMixKinHard\const_load\eta10_2",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoMixKinHard\const_load\eta10_3",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoMixKinHard\const_load\eta10_4",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoMixKinHard\const_load\eta10_5"
+    ]
+
+    sim_folder_visco_lin_iso_triangular_load = [
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoLinIsoHard\triangular_load\eta10_2",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoLinIsoHard\triangular_load\eta10_3",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoLinIsoHard\triangular_load\eta10_4",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoLinIsoHard\triangular_load\eta10_5",
+    ]
+    sim_folder_visco_mix_triangular_load = [
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoMixKinHard\triangular_load\eta10_2",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoMixKinHard\triangular_load\eta10_3",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoMixKinHard\triangular_load\eta10_4",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoMixKinHard\triangular_load\eta10_5",
+    ]
+
+    sim_folder_visco_lin_iso_sawtooth_load = [
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoLinIsoHard\sawtooth_load\eta10_2",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoLinIsoHard\sawtooth_load\eta10_3",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoLinIsoHard\sawtooth_load\eta10_4",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoLinIsoHard\sawtooth_load\eta10_5"
+    ]
+    sim_folder_visco_mix_sawtooth_load = [
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoMixKinHard\sawtooth_load\eta10_2",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoMixKinHard\sawtooth_load\eta10_3",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoMixKinHard\sawtooth_load\eta10_4",
+        r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoMixKinHard\sawtooth_load\eta10_5"
+    ]
     #---------------------------------------------------------------------------------------------
-       
-    
-    
     
     # labels = ["Perfectly Plastic", "Isotropic", "Kinematic", "Mixed"]
-    labels = ["Linear Isotropic", "Linear Kinematic", "Linear Mixed", "Perfectly Plastic"]
+    # labels = ["Linear Isotropic", "Linear Kinematic", "Linear Mixed", "Perfectly Plastic"]
+    labels = ["$\eta = 10^2 [MPa \cdot s]$", "$\eta = 10^3 [MPa \cdot s]$", "$\eta = 10^4 [MPa \cdot s]$", "$\eta = 10^5 [MPa \cdot s]$" ]
 
-    index = 1 # 0 or 1 DEPENDING IF YOU PLOT DIRECT VARIABLES (E_XX. SigmaVM,...) 
-                        # OR ONE THAT MUST BE COMPUTED (equivalentBackStress,..)
+    index = 1 # 0-> variable || 1-> function
 
-    variable = "E_PL" #ONLY USED WHEN index = 0 !! DO NO TRY TO PLOT MULTIPLE VARIABLES FOR DIFFERENT MODELS -> TOO MESSY
-    function = equivalentStressPlaneStrain  #ONLY USED WHEN index = 1
+    SigmaY0 = 300.0      # MPa
 
-    xlabel = r"time [$\mathrm{s}$]"
-    ylabel = r"$\bar \sigma$ [MPa]"
-    #multipleModelsPlot(index, xlabel, ylabel, sim_folder1, labels, variable, function)
-    multipleModelsMultiplesTimes(index, xlabel, ylabel, sim_folder1, sim_folder2,  labels, variable, function)
+    # theta = 0.75
+    # hi       = theta * 40000.0    # MPa
+    # hk       = (1 - theta) * 40000.0    # MPa
+
+    hi       = 40000.0    # MPa
+    hk = 0
+
+    function = VonMisesMinusSigmaY
+
+    variable = "EPL" 
+    xlabel = r"$\mathrm{time} \,[\mathrm{s}]$"
+    # ylabel = r"$\bar \varepsilon^{\mathrm{vp}}\, \,[$-$]$"
+    # ylabel = r"$\bar \alpha\, \,[\mathrm{MPa}]$"
+    # ylabel = r"$\sigma_y\, \,[\mathrm{MPa}]$"
+    ylabel = r"$\sigma^{\mathrm{VM}}\, - \sigma_\mathrm{y} \,[\mathrm{MPa}]$"
+    multipleModelsPlot(index, xlabel, ylabel, sim_folder_visco_lin_iso_triangular_load, labels, variable, function, SigmaY0, hi, hk)
+    # multipleModelsMultiplesTimes(index, xlabel, ylabel, sim_folder_visco_no_hard, sim_folder2,  labels, variable, function)
     
 
     #2. PLOTTING MULTIPLE VARIABLES (as function of time) FOR ONE PARTICULAR SCENARIO
 
-    # #cols = ["Sigma_XX", "Sigma_YY", "Sigma_ZZ", "SigmaVM"]
-    # cols = ["Sigma_VM"]
+    #cols = ["Sigma_XX", "Sigma_YY", "Sigma_ZZ", "SigmaVM"]
+    # cols = ["EPL"]
     # #cols = ["E_XX", "E_YY", "E_ZZ"]
-    # df_perfPlastic, *_ = analyze_simulation(r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\planestress\PP")
+    # df_perfPlastic, *_ = analyze_simulation(r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoMixKinHard")
     # singlePlot(df_perfPlastic, cols)
     
 
@@ -382,5 +490,3 @@ def main():
 #-----------------------------------------------------------------------------------
 if __name__ == "__main__":
     main()
-
-

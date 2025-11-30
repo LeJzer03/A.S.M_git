@@ -2,13 +2,13 @@
 #   Source file for the ASM project             #
 #                                               #
 #################################################.
-import os
+
 from wrap import *                        
 
 metafor = Metafor()
 domain = metafor.getDomain()
 
-def getMetafor(p={}):
+def getMetafor(p={}): 
     return metafor
     
 ###########################################
@@ -21,15 +21,38 @@ def getMetafor(p={}):
 #GEOMETRY:
 p= {} 
 p['GeometryHypothesis'] = "PLANESTRESS" #PLANESTRESS or "PLANESTRAIN" ; you need to implement PLANESTRAIN yourself! 
-p['EdgeSize'] = 120                     #Length of the cube
+p['EdgeSize'] = 100                     #Length of the cube
 #MESH:    
 p['Nx'] = 1                             #Nb of elements in the x direction
 p['Ny'] = 1                             #Nb of elements in the y direction
 p['Nz'] = 1                             #Nb of elements in the z direction
 #TIME:
-p['dT'] = 0.1                           #Maximum time step                     
+p['dT'] = 0.1                           #Maximum time step     i
+
 #MATERIAL & LAWS
-p['MaterialLaw'] = 'Linear_Isotropic_hardening'
+
+# ELASTOPLASTIC WITH LINEAR HARDENING
+#----------------------------------------------------
+# p['MaterialLaw'] = 'perfectPlastic'
+# p['MaterialLaw'] = 'linearIsotropicHardening'
+# p['MaterialLaw'] = 'linearKinematicHardening'
+# p['MaterialLaw'] = 'linearMixedHardening'
+#----------------------------------------------------
+
+# ELASTOPLASTIC WITH NON LINEAR HARDENING
+#----------------------------------------------------
+
+#----------------------------------------------------
+
+
+# VISCO-ELASTOPLASTIC WITH LINEAR HARDENING
+#----------------------------------------------------
+# p['MaterialLaw'] = 'viscoNoHardening'
+# p['MaterialLaw'] = 'viscoLinearIsotropicHardening'
+# p['MaterialLaw'] = 'viscoLinearMixedHardening'
+p['eta'] = 10**3 #viscous parameter [MPa.s]
+#----------------------------------------------------
+
 
 ###########################################
 # END OF DEFINITION OF THE PARAMETERS     #
@@ -138,11 +161,17 @@ Nu = 0.25                         #Poisson ratio
 SigmaY_0=300.0              #Elastic limit of virgin material  
 h = 40000.0                 #Hardening parameter 
 theta = 0.75
-   
+# DEFINITION OF VISCO PARAMETERS
+M = 1 
+N = 0  
+
 materset = domain.getMaterialSet()                              
 lawset = domain.getMaterialLawSet() 
 
-if p['MaterialLaw'] == 'PerfectlyPlastic':
+#------------------------------------------------------------------
+# ELASTOP WITH  WITH NON LINEAR HARDENING
+#------------------------------------------------------------------
+if p['MaterialLaw'] == 'perfectPlastic':
     material1 = materset.define(1,EvpIsoHHypoMaterial)
     material1.put(MASS_DENSITY,Density)
     material1.put(ELASTIC_MODULUS,Young)
@@ -156,22 +185,19 @@ if p['MaterialLaw'] == 'PerfectlyPlastic':
     lawset1.put(IH_SIGEL,SigmaY_0)
     lawset1.put(IH_H,h_i)
 
-if p['MaterialLaw'] == 'Linear_Isotropic_hardening':
+if p['MaterialLaw'] == 'linearIsotropicHardening':
     material1 = materset.define(1,EvpIsoHHypoMaterial)
     material1.put(MASS_DENSITY,Density)
     material1.put(ELASTIC_MODULUS,Young)
     material1.put(POISSON_RATIO,Nu)
     material1.put(YIELD_NUM,1)
 
-    theta=1
-    h_i = theta*h
-    h_k = (1-theta)*h
-
+    h_i = h
     lawset1 = lawset.define(1,LinearIsotropicHardening)
     lawset1.put(IH_SIGEL,SigmaY_0)
     lawset1.put(IH_H,h_i)
 
-if p['MaterialLaw'] == 'Linear_Kinematic_hardening':
+if p['MaterialLaw'] == 'linearKinematicHardening':
     material1 = materset.define(1,EvpMixtHHypoMaterial)
     material1.put(MASS_DENSITY,Density)
     material1.put(ELASTIC_MODULUS,Young)
@@ -180,32 +206,111 @@ if p['MaterialLaw'] == 'Linear_Kinematic_hardening':
     material1.put(KH_NB,1)
     material1.put(KH_NUM1,2)
 
-    theta = 0;
-    h_i = theta*h
-    h_k = (1-theta)*h
+    h_i = 0
     lawset1 = lawset.define(1,LinearIsotropicHardening)
     lawset1.put(IH_SIGEL,SigmaY_0)
     lawset1.put(IH_H,h_i)
+
+    h_k = h
     lawset1 = lawset.define(2,ArmstrongFrederickKinematicHardening)
     lawset1.put(KH_H, h_k)
     lawset1.put(KH_B, 0)
 
-if p['MaterialLaw'] == 'Linear_Mixed_hardening':
+if p['MaterialLaw'] == 'linearMixedHardening':
     material1 = materset.define(1,EvpMixtHHypoMaterial)
     material1.put(MASS_DENSITY,Density)
     material1.put(ELASTIC_MODULUS,Young)
     material1.put(POISSON_RATIO,Nu)
-    material1.put(YIELD_NUM,1) 
-    material1.put(KH_NB,1) 
-    material1.put(KH_NUM1,2)
-    
+    material1.put(YIELD_NUM,1) #Number of the material law which defines the yield stress 
+    material1.put(KH_NB,1) # Number of kinematic hardening laws
+    material1.put(KH_NUM1,2) # Number of kinematic hardening law 1 
     
     h_i = theta*h
-    h_k = (1-theta)*h
     lawset1 = lawset.define(1,LinearIsotropicHardening)
     lawset1.put(IH_SIGEL,SigmaY_0)
     lawset1.put(IH_H,h_i)
+    
+    h_k = (1-theta)*h
     lawset2 = lawset.define(2,ArmstrongFrederickKinematicHardening)
+    lawset2.put(KH_H, h_k)
+    lawset2.put(KH_B, 0)
+
+
+#------------------------------------------------------------------
+# ELASTOP WITH  WITH NON LINEAR HARDENING
+#------------------------------------------------------------------
+
+
+
+
+
+
+
+
+#------------------------------------------------------------------
+# VISCO-ELASTOPLASTIC LAWS 
+#------------------------------------------------------------------
+
+if p['MaterialLaw'] == 'viscoNoHardening':
+    material1 = materset.define(1,EvpIsoHHypoMaterial)
+    material1.put(MASS_DENSITY,Density)
+    material1.put(ELASTIC_MODULUS,Young)
+    material1.put(POISSON_RATIO,Nu)
+    material1.put(YIELD_NUM,2) #associate Perzyna to material (law 1 is associated to Perzyna)
+
+    h_i = 0.
+    lawset1 = lawset.define(1,LinearIsotropicHardening)
+    lawset1.put(IH_SIGEL,SigmaY_0)
+    lawset1.put(IH_H,h_i)
+
+    lawset2 = lawset.define(2,PerzynaYieldStress)
+    lawset2.put(PERZYNA_K, p['eta'])
+    lawset2.put(PERZYNA_M, M)
+    lawset2.put(PERZYNA_N, N)
+    lawset2.put(IH_NUM, 1) #link law 1 to the Perzyna law
+
+
+if p['MaterialLaw'] == 'viscoLinearIsotropicHardening':
+    material1 = materset.define(1,EvpIsoHHypoMaterial)
+    material1.put(MASS_DENSITY,Density)
+    material1.put(ELASTIC_MODULUS,Young)
+    material1.put(POISSON_RATIO,Nu)
+    material1.put(YIELD_NUM,2)
+
+    h_i = h
+    lawset1 = lawset.define(1,LinearIsotropicHardening)
+    lawset1.put(IH_SIGEL,SigmaY_0)
+    lawset1.put(IH_H,h_i)
+
+    lawset2 = lawset.define(2,PerzynaYieldStress)
+    lawset2.put(PERZYNA_K, p['eta'])
+    lawset2.put(PERZYNA_M, M)
+    lawset2.put(PERZYNA_N, N)
+    lawset2.put(IH_NUM, 1)
+
+
+if p['MaterialLaw'] == 'viscoLinearMixedHardening':
+    material1 = materset.define(1,EvpMixtHHypoMaterial)
+    material1.put(MASS_DENSITY,Density)
+    material1.put(ELASTIC_MODULUS,Young)
+    material1.put(POISSON_RATIO,Nu)
+    material1.put(YIELD_NUM,2) #Number of the material law which defines the yield stress 
+    material1.put(KH_NB,1) # Number of kinematic hardening laws
+    material1.put(KH_NUM1,3) # Number of kinematic hardening law 1    
+
+    h_i = theta * h
+    lawset1 = lawset.define(1,LinearIsotropicHardening)
+    lawset1.put(IH_SIGEL,SigmaY_0)
+    lawset1.put(IH_H,h_i)
+
+    lawset2 = lawset.define(2,PerzynaYieldStress)
+    lawset2.put(PERZYNA_K, p['eta'])
+    lawset2.put(PERZYNA_M, M)
+    lawset2.put(PERZYNA_N, N)
+    lawset2.put(IH_NUM, 1)
+
+    h_k = (1-theta)*h
+    lawset2 = lawset.define(3,ArmstrongFrederickKinematicHardening)
     lawset2.put(KH_H, h_k)
     lawset2.put(KH_B, 0)
 
@@ -240,13 +345,12 @@ if p['GeometryHypothesis']=="PLANESTRESS":
     loadingset.define(sideset(1),Field1D(TZ,RE),0.)                     
     loadingset.define(sideset(3),Field1D(TY,RE),0.)                     
     loadingset.define(sideset(6),Field1D(TX,RE),0.)                     
-    
 elif p['GeometryHypothesis']=="PLANESTRAIN":
     loadingset.define(sideset(1),Field1D(TZ,RE),0.)                     
     loadingset.define(sideset(3),Field1D(TY,RE),0.)                     
     loadingset.define(sideset(6),Field1D(TX,RE),0.)
-    loadingset.define(sideset(2),Field1D(TZ,RE),0.)                     
-    ###################################################################
+    loadingset.define(sideset(2),Field1D(TZ,RE),0.) 
+   ###################################################################
     # IMPLEMENT BOUNDARY CONDITION TO OBTAIN PLANE STRAIN STATE HERE  #
     ###################################################################
     
@@ -256,8 +360,8 @@ elif p['GeometryHypothesis']=="PLANESTRAIN":
 #-------------------------------------------------
 
 #LOAD:                                                              
-Trac =400.0                       #Traction
-Ncycle = 1                         #Number of cycles of loading/unloading
+Trac = 440.                       #Traction
+Ncycle = 4                         #Number of cycles of loading/unloading
 Tcycle = 4.                        #Duration of one cycle
 
 fct = PieceWiseLinearFunction()
@@ -272,8 +376,34 @@ for i in range (0,Ncycle):
 # IMPLEMENT A DIFFERENT LOADING FCT HERE#
 #########################################
 
+# CONSTANT LOADING (used in visco-elastoplastic simulations)
+#--------------------------------------------------------------
+tcycle_const_loading = Tcycle * Ncycle
+const_loading_fct = PieceWiseLinearFunction()
+const_loading_fct.setData(0.,0.) #point n°1
+const_loading_fct.setData(1.0,1.0)#point n°2
+const_loading_fct.setData(tcycle_const_loading, 1.0)#point n°3
+#--------------------------------------------------------------
+
+# SAWTOOTH LOADING (used in visco-elastoplastic simulations)
+#--------------------------------------------------------------
+sawtooth_function = PieceWiseLinearFunction()
+for i in range(0, Ncycle):
+    t0 = i*Tcycle
+    sawtooth_function.setData(t0 + 0.0*Tcycle/8.0, 0.0)
+    sawtooth_function.setData(t0 + 1.0*Tcycle/8.0, 1.0)
+    sawtooth_function.setData(t0 + 2.0*Tcycle/8.0, 1.0)
+    sawtooth_function.setData(t0 + 3.0*Tcycle/8.0, 0.0)   
+    sawtooth_function.setData(t0 + 4.0*Tcycle/8.0, 0.0)
+    sawtooth_function.setData(t0 + 5.0*Tcycle/8.0, -1.0)
+    sawtooth_function.setData(t0 + 6.0*Tcycle/8.0, -1.0)
+    sawtooth_function.setData(t0 + 7.0*Tcycle/8.0, 0.0)
+    sawtooth_function.setData(t0 + 8.0*Tcycle/8.0, 0.0)
+#--------------------------------------------------------------
+
+
 prp2 = ElementProperties (Pressure3DElement)                    
-prp2.put(PRESSURE, Trac)                             #!!!!!!!!!!!!!! -Trac changed to +Trac
+prp2.put(PRESSURE,  -Trac)                             
 prp2.depend (PRESSURE, fct, Field1D(TM,RE)) # To apply your new function, you can put it instead of "fct" here
     
 #7.3 Generating the pressure element on the mesh
