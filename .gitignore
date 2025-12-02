@@ -1,10 +1,7 @@
 .vscode/
 __pycache__/
-elastoPlot.py
 guidelines.pdf
 images/
-load.py
-part1/images/
 plots_CubeSurfaceTraction/
 plots_IH/
 plots_KH/
@@ -26,14 +23,9 @@ plots_triangular/
 plots_viscoLinIsoHard/
 plots_viscoMixKinHard/
 rapport_precedents/
-simulations/part1/images/
-simulations/part3/images/
-simulations/part3/stepVSsawtooth/
-simulations/part3/viscoLinIsoHard/
 statement.pdf
 stepVSsawtooth/
 tuto.pdf
 tutoriel/
 viscoLinIsoHard/
-viscoPlot.py
 workspace/
