@@ -444,38 +444,38 @@ def main():
     
     # labels = ["Perfectly Plastic", "Isotropic", "Kinematic", "Mixed"]
     # labels = ["Linear Isotropic", "Linear Kinematic", "Linear Mixed", "Perfectly Plastic"]
-    labels = ["$\eta = 10^2 [MPa \cdot s]$", "$\eta = 10^3 [MPa \cdot s]$", "$\eta = 10^4 [MPa \cdot s]$", "$\eta = 10^5 [MPa \cdot s]$" ]
+    # labels = ["$\eta = 10^2 [MPa \cdot s]$", "$\eta = 10^3 [MPa \cdot s]$", "$\eta = 10^4 [MPa \cdot s]$", "$\eta = 10^5 [MPa \cdot s]$" ]
 
-    index = 1 # 0-> variable || 1-> function
+    # index = 1 # 0-> variable || 1-> function
 
-    SigmaY0 = 300.0      # MPa
+    # SigmaY0 = 300.0      # MPa
 
-    # theta = 0.75
-    # hi       = theta * 40000.0    # MPa
-    # hk       = (1 - theta) * 40000.0    # MPa
+    # # theta = 0.75
+    # # hi       = theta * 40000.0    # MPa
+    # # hk       = (1 - theta) * 40000.0    # MPa
 
-    hi       = 40000.0    # MPa
-    hk = 0
+    # hi       = 40000.0    # MPa
+    # hk = 0
 
-    function = VonMisesMinusSigmaY
+    # function = VonMisesMinusSigmaY
 
-    variable = "EPL" 
-    xlabel = r"$\mathrm{time} \,[\mathrm{s}]$"
-    # ylabel = r"$\bar \varepsilon^{\mathrm{vp}}\, \,[$-$]$"
-    # ylabel = r"$\bar \alpha\, \,[\mathrm{MPa}]$"
-    # ylabel = r"$\sigma_y\, \,[\mathrm{MPa}]$"
-    ylabel = r"$\sigma^{\mathrm{VM}}\, - \sigma_\mathrm{y} \,[\mathrm{MPa}]$"
-    multipleModelsPlot(index, xlabel, ylabel, sim_folder_visco_lin_iso_triangular_load, labels, variable, function, SigmaY0, hi, hk)
-    # multipleModelsMultiplesTimes(index, xlabel, ylabel, sim_folder_visco_no_hard, sim_folder2,  labels, variable, function)
+    # variable = "EPL" 
+    # xlabel = r"$\mathrm{time} \,[\mathrm{s}]$"
+    # # ylabel = r"$\bar \varepsilon^{\mathrm{vp}}\, \,[$-$]$"
+    # # ylabel = r"$\bar \alpha\, \,[\mathrm{MPa}]$"
+    # # ylabel = r"$\sigma_y\, \,[\mathrm{MPa}]$"
+    # ylabel = r"$\sigma^{\mathrm{VM}}\, - \sigma_\mathrm{y} \,[\mathrm{MPa}]$"
+    # multipleModelsPlot(index, xlabel, ylabel, sim_folder_visco_lin_iso_triangular_load, labels, variable, function, SigmaY0, hi, hk)
+    # # multipleModelsMultiplesTimes(index, xlabel, ylabel, sim_folder_visco_no_hard, sim_folder2,  labels, variable, function)
     
 
     #2. PLOTTING MULTIPLE VARIABLES (as function of time) FOR ONE PARTICULAR SCENARIO
 
-    #cols = ["Sigma_XX", "Sigma_YY", "Sigma_ZZ", "SigmaVM"]
-    # cols = ["EPL"]
-    # #cols = ["E_XX", "E_YY", "E_ZZ"]
-    # df_perfPlastic, *_ = analyze_simulation(r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\part3\viscoMixKinHard")
-    # singlePlot(df_perfPlastic, cols)
+    # cols = ["Sigma_XX", "Sigma_YY", "Sigma_ZZ", "SigmaVM"]
+    #cols = ["E_XX", "E_YY", "E_ZZ"]
+    cols = ["EPL"]
+    df_perfPlastic, *_ = analyze_simulation(r"C:\Users\vinch\OneDrive - Universite de Liege\Documents\master1\q1\asm\project\workspace\CubeSurfaceTraction")
+    singlePlot(df_perfPlastic, cols)
     
 
     #3. PLOTTING TWO VARIABLES (one vs the other, not as a fct of time) FOR THE SAME SCENARIO

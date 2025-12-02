@@ -21,7 +21,7 @@ def getMetafor(p={}):
 #GEOMETRY:
 p= {} 
 p['GeometryHypothesis'] = "PLANESTRESS" #PLANESTRESS or "PLANESTRAIN" ; you need to implement PLANESTRAIN yourself! 
-p['EdgeSize'] = 100                     #Length of the cube
+p['EdgeSize'] = 120                     #Length of the cube
 #MESH:    
 p['Nx'] = 1                             #Nb of elements in the x direction
 p['Ny'] = 1                             #Nb of elements in the y direction
@@ -52,8 +52,11 @@ p['n_k'] = 200 #viscous parameter [MPa.s]
 #----------------------------------------------------
 # p['MaterialLaw'] = 'viscoNoHardening'
 # p['MaterialLaw'] = 'viscoLinearIsotropicHardening'
-# p['MaterialLaw'] = 'viscoLinearMixedHardening'
-p['eta'] = 10**3 #viscous parameter [MPa.s]
+p['MaterialLaw'] = 'viscoLinearMixedHardening'
+# p['eta'] = 10**2 #viscous parameter [MPa.s]
+# p['eta'] = 10**3 #viscous parameter [MPa.s]
+# p['eta'] = 10**4 #viscous parameter [MPa.s]
+p['eta'] = 10**5 #viscous parameter [MPa.s]
 #----------------------------------------------------
 
 
@@ -461,7 +464,7 @@ for i in range(0, Ncycle):
 
 prp2 = ElementProperties (Pressure3DElement)                    
 prp2.put(PRESSURE,  -Trac)                             
-prp2.depend (PRESSURE, fct, Field1D(TM,RE)) # To apply your new function, you can put it instead of "fct" here
+prp2.depend (PRESSURE, sawtooth_function, Field1D(TM,RE)) # To apply your new function, you can put it instead of "fct" here
     
 #7.3 Generating the pressure element on the mesh
 #---------------------------------------------------------------------
