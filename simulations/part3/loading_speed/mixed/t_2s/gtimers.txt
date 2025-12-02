@@ -1,0 +1,6 @@
+	user	real	kernel
+Domain::setStep	0	0.004	0.015625
+Metafor::beginStep	0	0.001	0.03125
+TimeIntegration::actualStrVectorUpdate	0	0	0
+TimeIntegration::oldStrVectorUpdate	0	0	0
+endLagrangianStep	0	0.001	0

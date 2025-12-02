@@ -1,0 +1,4 @@
+eta = 10^3 for all tests
+plane stress
+T=440 MPa
+
