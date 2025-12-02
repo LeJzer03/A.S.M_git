@@ -1,4 +1,0 @@
-Trac = 440 MPa for all simulations (even no hardening)
-Ncycles = 4, Tcycle = 4
-Traction applied on the wall is -Trac 
--> first compression then traction
